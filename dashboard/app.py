@@ -50,8 +50,8 @@ st.markdown("""
 def load_data():
     try:
         # Load datasets
-        events_df = pd.read_csv("../datasets/events_clean.csv")
-        daily_score_df = pd.read_csv("../datasets/daily_score.csv")
+        events_df = pd.read_csv("../data/events_clean.csv")
+        daily_score_df = pd.read_csv("../data/daily_score.csv")
         
         # Format dates
         events_df['SQLDATE'] = pd.to_datetime(events_df['SQLDATE'])
