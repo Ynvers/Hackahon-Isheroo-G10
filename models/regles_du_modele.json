@@ -1,0 +1,42 @@
+{
+    "Cluster_0": {
+        "Nom_Contexte": "Crise/Conflit Négatif",
+        "Valeurs_Moyennes": {
+            "GoldsteinScale": -3.22,
+            "AvgTone": -5.54,
+            "NumMentions": 3.28,
+            "NumSources": 1.0,
+            "NumArticles": 3.24
+        }
+    },
+    "Cluster_1": {
+        "Nom_Contexte": "Événement Fortement Médiatisé",
+        "Valeurs_Moyennes": {
+            "GoldsteinScale": 1.35,
+            "AvgTone": -0.19,
+            "NumMentions": 10.38,
+            "NumSources": 1.0,
+            "NumArticles": 10.0
+        }
+    },
+    "Cluster_2": {
+        "Nom_Contexte": "Événement Neutre/Routinier",
+        "Valeurs_Moyennes": {
+            "GoldsteinScale": 2.78,
+            "AvgTone": 1.31,
+            "NumMentions": 2.9,
+            "NumSources": 1.0,
+            "NumArticles": 2.88
+        }
+    },
+    "Cluster_3": {
+        "Nom_Contexte": "Événement Fortement Médiatisé",
+        "Valeurs_Moyennes": {
+            "GoldsteinScale": 0.12,
+            "AvgTone": -1.49,
+            "NumMentions": 11.34,
+            "NumSources": 2.04,
+            "NumArticles": 10.68
+        }
+    }
+}
