@@ -35,6 +35,7 @@ Il permet de visualiser en un coup d'œil :
 
 ---
 
+<<<<<<< HEAD
 ## 🧠 Modèles de Machine Learning Avancés
 
 Au-delà de la classification de base, nous avons intégré deux couches d'intelligence artificielle supplémentaires pour une analyse plus fine :
@@ -78,6 +79,34 @@ Anticipation de l'évolution du niveau de stabilité du pays à court terme.
     ```
 *   **Pour voir les règles métier extraites du modèle (lisible par un humain) :**
     Consultez le fichier `models/regles_du_modele.json`.
+=======
+## 🚀 Reproductibilité et Installation
+
+Ce dépôt contient tout le code nécessaire pour reproduire notre pipeline de données et nos modèles prédictifs.
+
+### Structure du projet
+
+```
+├── datasets/            # Données sources nettoyées (events, GKG, scores)
+├── notesbooks/          # Notebooks Jupyter (Data Engineering et ML)
+├── Equipe10_Plateforme...pbix # Fichier source du Dashboard PowerBI
+├── requirements.txt     # Dépendances Python
+└── README.md            # Ce fichier
+```
+
+### Comment lancer l'analyse en local ?
+
+1. Clonez ce dépôt GitHub :
+   ```bash
+   git clone https://github.com/Ynvers/Hackahon-Isheroo-G10.git
+   cd Hackahon-Isheroo-G10
+   ```
+2. Installez les dépendances requises :
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Lancez les notebooks dans le dossier `notesbooks/` pour rejouer l'extraction de données et l'entraînement du modèle Random Forest.
+>>>>>>> 8ad1ac6343d0cab4fbd069bf108dbcf3870d0af1
 
 ---
 
