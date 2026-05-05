@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
+from pathlib import Path
 
 # Configuration de la page
 st.set_page_config(
@@ -50,13 +51,16 @@ st.markdown("""
 def load_data():
     try:
         # Load datasets
-        events_df = pd.read_csv("../data/events_clean.csv")
-        daily_score_df = pd.read_csv("../data/daily_score.csv")
+        base_path = Path(__file__).parent.parent
+        events_path = base_path / "data" / "events_clean.csv"
+        daily_score_path = base_path / "data" / "daily_score.csv"
         
         # Format dates
+        events_df = pd.read_csv(events_path, low_memory=False)
+        daily_score_df = pd.read_csv(daily_score_path, low_memory=False)
         events_df['SQLDATE'] = pd.to_datetime(events_df['SQLDATE'])
         events_df['month_name'] = events_df['SQLDATE'].dt.strftime('%Y-%m')
-        
+
         daily_score_df['SQLDATE'] = pd.to_datetime(daily_score_df['SQLDATE'])
         daily_score_df['month_name'] = daily_score_df['SQLDATE'].dt.strftime('%Y-%m')
         
