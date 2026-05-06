@@ -5,29 +5,50 @@ import plotly.graph_objects as go
 import numpy as np
 import os
 import pickle
+import json
+import joblib
+import warnings
+from sklearn.exceptions import InconsistentVersionWarning
+warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from pathlib import Path
 
-# Chargement de la clé API depuis le fichier .env (si non déjà en variable d'env)
+# Chargement de la clé API :
+#   1. En local  → fichier .env à la racine du projet (jamais pushé)
+#   2. En prod   → st.secrets (configuré dans les Settings de Streamlit Cloud)
 _env_path = Path(__file__).parent.parent / ".env"
 if _env_path.exists():
     for _line in _env_path.read_text().splitlines():
         if "=" in _line and not _line.startswith("#"):
             _k, _v = _line.split("=", 1)
             os.environ.setdefault(_k.strip(), _v.strip())
+else:
+    # Fallback Streamlit Cloud : charge depuis st.secrets si disponible
+    try:
+        for _k, _v in st.secrets.items():
+            os.environ.setdefault(_k, str(_v))
+    except Exception:
+        pass  # st.secrets non disponible (ex: test local sans .env ni secrets)
 
 # Configuration de la page
 st.set_page_config(
     page_title="Bénin Geo-Watch",
-    page_icon="🇧🇯",
+    page_icon="BJ",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS pour donner un aspect premium
+# Custom CSS pour donner un aspect premium + verrouillage du thème sombre
 st.markdown("""
 <style>
+    /* Cache le toolbar Streamlit (sélecteur de thème, deploy, etc.) */
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
     .kpi-card {
         background-color: #1E1E1E;
         padding: 20px;
@@ -87,7 +108,7 @@ if events_df.empty:
 # --- HEADER ---
 col_logo, col_title = st.columns([1, 8])
 with col_logo:
-    st.markdown("<h1 style='text-align: center;'>🇧🇯</h1>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; font-size:48px; font-weight:bold; color:#2ecc71;'>BJ</div>", unsafe_allow_html=True)
 with col_title:
     st.title("Bénin Geo-Watch : Radar Géopolitique et Sécuritaire")
     st.markdown("*À partir des données GDELT 2025/2026*")
@@ -200,7 +221,7 @@ faiss_index, events_metadata, mistral_client_rag = load_rag_components()
 # --- UI Sidebar RAG ---
 st.sidebar.divider()
 st.sidebar.markdown(
-    "<h3 style='margin-bottom:4px;'>🤖 Assistant RAG</h3>"
+    "<h3 style='margin-bottom:4px;'>Assistant Bénin Geo-Watch</h3>"
     "<p style='font-size:12px; color:#888; margin-top:0;'>Posez une question sur les données géopolitiques du Bénin</p>",
     unsafe_allow_html=True
 )
@@ -227,7 +248,7 @@ else:
             if msg.get("sources"):
                 with st.sidebar.expander("📎 Sources", expanded=False):
                     for src in msg["sources"]:
-                        st.sidebar.markdown(f"- [{src[:60]}…]({src})" if len(src) > 60 else f"- [{src}]({src})")
+                        st.markdown(f"- [{src[:60]}…]({src})" if len(src) > 60 else f"- [{src}]({src})")
 
     # Saisie de la question
     user_question = st.sidebar.text_area(
@@ -267,6 +288,32 @@ else:
                         "sources": []
                     })
         st.rerun()
+
+# --- GLOSSAIRE DES INDICATEURS ---
+with st.expander("Comprendre les indicateurs GDELT", expanded=False):
+    g_col1, g_col2 = st.columns(2)
+    with g_col1:
+        st.markdown("""
+**Echelle de Goldstein** (-10 → +10)
+> Mesure le *potentiel de déstabilisation* d'un événement. Un score **négatif** signale une menace pour la stabilité (conflit, violence, sanction). Un score **positif** indique un événement coopératif (accord, aide, diplomatie). C'est l'**indicateur d'alerte principal** de ce dashboard.
+
+**Tone Médiatique (AvgTone)**
+> Sentiment émotionnel moyen de tous les articles couvrant un événement. Calculé par GDELT à partir de l'analyse linguistique des textes. Valeur **négative** = presse alarmiste ou critique. Valeur **positive** = presse favorable ou enthousiaste.
+
+**Score de Stabilité** (0 → 100)
+> Score composite quotidien dérivé du Goldstein et du Tone. **50 = neutre**, en dessous = instabilité, au-dessus = bonne santé géopolitique. Utilisé pour les prédictions temporelles.
+""")
+    with g_col2:
+        st.markdown("""
+**Nombre de Mentions (NumMentions)**
+> Combien de fois un événement est cité à travers l'ensemble des flux d'information GDELT. Une valeur élevée signifie que l'événement a généré un important **bruit médiatique**.
+
+**Nombre de Sources (NumSources)**
+> Nombre de sites d'information *distincts* qui ont couvert l'événement. Indique la **diversité** de la couverture médiatique. Un événement couverts par 1 seule source est moins fiable/significatif qu'un événement relayé par 20 sources indépendantes.
+
+**Nombre d'Articles (NumArticles)**
+> Nombre total d'articles publiés. Proche de NumMentions mais compte les articles complets plutôt que les citations. Combiné avec NumSources, il mesure l'**ampleur médiatique** réelle d'un événement.
+""")
 
 # --- KPIs ---
 total_events = len(filtered_events)
@@ -311,7 +358,7 @@ st.write("")
 st.write("")
 
 # --- CARTE GÉOGRAPHIQUE ---
-st.subheader("📍 Carte des Tensions Régionales")
+st.subheader("Carte des Tensions Régionales")
 st.markdown("*Vue géographique des événements géolocalisés. La taille de la bulle indique le **volume d'événements**, et la couleur indique le **sentiment** (rouge = négatif/crise, vert = positif/coopération).*")
 
 def extract_region(geo_name):
@@ -417,13 +464,164 @@ with row2_col2:
 st.divider()
 
 # --- INSIGHTS ---
-st.header("💡 Insights Clés & Analyse")
+st.header("Insights Clés & Analyse")
 i_col1, i_col2, i_col3 = st.columns(3)
 with i_col1:
-    st.markdown("""<div class="insight-card"><h4>🚨 Pic d'Instabilité</h4><p>En décembre, le nombre d'événements (près de 1100) a représenté le double de la moyenne mensuelle. Un signal d'instabilité majeur qui a déclenché nos alertes de crise.</p></div>""", unsafe_allow_html=True)
-    st.markdown("""<div class="insight-card"><h4>📰 Dramatisation Médiatique</h4><p>Les articles couvrant une crise affichent un ton moyen de <b>-1.72</b> contre +1.13 pour les autres. La presse internationale polarise fortement l'actualité sécuritaire.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card"><h4>Pic d'Instabilité</h4><p>En décembre, le nombre d'événements (près de 1100) a représenté le double de la moyenne mensuelle. Un signal d'instabilité majeur qui a déclenché nos alertes de crise.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card"><h4>Dramatisation Médiatique</h4><p>Les articles couvrant une crise affichent un ton moyen de <b>-1.72</b> contre +1.13 pour les autres. La presse internationale polarise fortement l'actualité sécuritaire.</p></div>""", unsafe_allow_html=True)
 with i_col2:
-    st.markdown("""<div class="insight-card" style="border-top-color: #2ecc71;"><h4>🤝 Résilience Diplomatique</h4><p>Malgré un contexte sécuritaire tendu au Nord, plus de <b>51%</b> des événements recensés sont de type "Coopération". L'activité diplomatique du Bénin reste extrêmement solide.</p></div>""", unsafe_allow_html=True)
-    st.markdown("""<div class="insight-card" style="border-top-color: #3498db;"><h4>🇳🇬 Le Poids du Nigeria</h4><p>Avec plus de 600 événements conjoints, le Nigeria s'affirme de très loin comme le premier acteur d'interaction géopolitique du Bénin devant la France et les autres pays frontaliers.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card" style="border-top-color: #2ecc71;"><h4>Résilience Diplomatique</h4><p>Malgré un contexte sécuritaire tendu au Nord, plus de <b>51%</b> des événements recensés sont de type "Coopération". L'activité diplomatique du Bénin reste extrêmement solide.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card" style="border-top-color: #3498db;"><h4>Le Poids du Nigeria</h4><p>Avec plus de 600 événements conjoints, le Nigeria s'affirme de très loin comme le premier acteur d'interaction géopolitique du Bénin devant la France et les autres pays frontaliers.</p></div>""", unsafe_allow_html=True)
 with i_col3:
-    st.markdown("""<div class="insight-card" style="border-top-color: #f1c40f;"><h4>📉 Le Mois de Tous les Dangers</h4><p>L'échelle de Goldstein montre que le mois de novembre a été le mois où l'intensité moyenne des conflits a été la plus critique (score descendant à +0.13, frôlant le négatif).</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card" style="border-top-color: #f1c40f;"><h4>Le Mois de Tous les Dangers</h4><p>L'échelle de Goldstein montre que le mois de novembre a été le mois où l'intensité moyenne des conflits a été la plus critique (score descendant à +0.13, frôlant le négatif).</p></div>""", unsafe_allow_html=True)
+
+st.divider()
+
+# ============================================================
+# --- SIMULATEUR WHAT-IF ---
+# ============================================================
+
+st.header("Simulateur What-If : Analysez un Scénario")
+st.markdown("*Ajustez les paramètres géopolitiques ci-dessous pour simuler n'importe quel scénario et découvrir comment notre modèle le classerait.*")
+
+@st.cache_resource(show_spinner="Chargement des modèles ML…")
+def load_ml_models():
+    """Charge les modèles KMeans + Scaler + règles de cluster."""
+    try:
+        _base = Path(__file__).resolve().parent.parent / "models"
+        _candidates = [
+            _base,
+            Path.cwd() / "models",
+            Path.cwd().parent / "models",
+        ]
+        model_dir = next((p for p in _candidates if (p / "kmeans_geopolitics.pkl").exists()), None)
+        if model_dir is None:
+            return None, None, None
+
+        kmeans  = joblib.load(model_dir / "kmeans_geopolitics.pkl")
+        scaler  = joblib.load(model_dir / "scaler_geopolitics.pkl")
+        regles  = json.loads((model_dir / "regles_du_modele.json").read_text(encoding="utf-8"))
+        return kmeans, scaler, regles
+    except Exception:
+        return None, None, None
+
+_CLUSTER_COLORS = {
+    "Crise/Conflit Négatif":           "#e74c3c",
+    "Événement Fortement Médiatisé":   "#f39c12",
+    "Tension Modérée":                 "#f1c40f",
+    "Coopération/Diplomatie Positive": "#2ecc71",
+    "Événement Neutre/Routinier":      "#3498db",
+}
+_CLUSTER_ICONS = {
+    "Crise/Conflit Négatif":           "ALERTE",
+    "Événement Fortement Médiatisé":   "MÉDIATISÉ",
+    "Tension Modérée":                 "TENSION",
+    "Coopération/Diplomatie Positive": "COOPÉRATION",
+    "Événement Neutre/Routinier":      "NEUTRE",
+}
+
+kmeans_model, scaler_model, cluster_regles = load_ml_models()
+
+if kmeans_model is None:
+    st.error("❌ Modèles ML introuvables. Vérifiez le dossier `models/`.")
+else:
+    sim_col1, sim_col2 = st.columns([1, 1], gap="large")
+
+    with sim_col1:
+        st.subheader("Parametres du scénario")
+        st.caption("Faites glisser les curseurs pour décrire votre scénario. La classification se met à jour en temps réel.")
+
+        goldstein = st.slider(
+            "Echelle de Goldstein",
+            min_value=-10.0, max_value=10.0, value=0.0, step=0.1
+        )
+        st.caption("Negatif = déstabilisant (conflit, violence) · Positif = coopératif (accord, aide)")
+
+        avg_tone = st.slider(
+            "Tone Médiatique Moyen",
+            min_value=-20.0, max_value=20.0, value=0.0, step=0.1
+        )
+        st.caption("Sentiment de la presse — Négatif = alarmiste · Positif = favorable")
+
+        mentions = st.slider(
+            "Nombre de Mentions",
+            min_value=1, max_value=300, value=10, step=1
+        )
+        st.caption("Citations totales de l'événement dans les flux d'info GDELT")
+
+        sources = st.slider(
+            "Nombre de Sources distinctes",
+            min_value=1, max_value=50, value=1, step=1
+        )
+        st.caption("Sites médiatiques indépendants couvrant l'événement")
+
+        articles = st.slider(
+            "Nombre d'Articles",
+            min_value=1, max_value=300, value=10, step=1
+        )
+        st.caption("Articles complets publiés — reflète l'ampleur médiatique réelle")
+
+    with sim_col2:
+        st.subheader("Résultat du modèle")
+
+        # Prédiction
+        features_df = pd.DataFrame([{
+            "GoldsteinScale": goldstein,
+            "AvgTone":        avg_tone,
+            "NumMentions":    mentions,
+            "NumSources":     sources,
+            "NumArticles":    articles
+        }])
+        cluster_id   = kmeans_model.predict(scaler_model.transform(features_df))[0]
+        cluster_key  = f"Cluster_{cluster_id}"
+        cluster_name = cluster_regles[cluster_key]["Nom_Contexte"]
+        color        = _CLUSTER_COLORS.get(cluster_name, "#888")
+        icon         = _CLUSTER_ICONS.get(cluster_name, "❓")
+        ref_vals     = cluster_regles[cluster_key]["Valeurs_Moyennes"]
+
+        # Carte résultat
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                    border: 2px solid {color}; border-radius: 12px; padding: 24px;
+                    box-shadow: 0 0 20px {color}44; text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 20px; font-weight: bold; color: {color}; letter-spacing: 3px; margin-bottom: 8px;">{icon}</div>
+            <div style="font-size: 11px; color: #888; letter-spacing: 2px; text-transform: uppercase;">Classification ML</div>
+            <div style="font-size: 24px; font-weight: bold; color: {color}; margin: 8px 0;">{cluster_name}</div>
+            <div style="font-size: 12px; color: #aaa;">Cluster {cluster_id} · Basé sur KMeans</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Comparaison avec les valeurs de référence
+        st.markdown("**Comparaison avec les moyennes du cluster :**")
+        compare_data = {
+            "Paramètre":        ["Goldstein", "Tone Médiatique", "Mentions", "Sources", "Articles"],
+            "Votre scénario":   [goldstein, avg_tone, mentions, sources, articles],
+            "Moyenne du cluster": [
+                ref_vals["GoldsteinScale"], ref_vals["AvgTone"],
+                ref_vals["NumMentions"],   ref_vals["NumSources"], ref_vals["NumArticles"]
+            ]
+        }
+        compare_df = pd.DataFrame(compare_data)
+        fig_compare = go.Figure()
+        fig_compare.add_trace(go.Bar(
+            name="Votre scénario",
+            x=compare_df["Paramètre"],
+            y=compare_df["Votre scénario"],
+            marker_color=color,
+            opacity=0.9
+        ))
+        fig_compare.add_trace(go.Bar(
+            name="Moyenne cluster",
+            x=compare_df["Paramètre"],
+            y=compare_df["Moyenne du cluster"],
+            marker_color="#555",
+            opacity=0.7
+        ))
+        fig_compare.update_layout(
+            template="plotly_dark",
+            barmode="group",
+            height=260,
+            margin=dict(t=10, b=10, l=10, r=10),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig_compare, use_container_width=True)
