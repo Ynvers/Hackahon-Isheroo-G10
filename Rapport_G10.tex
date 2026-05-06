@@ -186,8 +186,15 @@ C'est la fonctionnalité préférée de nos testeurs. Elle permet d'ajuster des 
 % ============================================================
 \section{Difficultés, Solutions et Collaboration}
 % ============================================================
-\subsection{Le Défi du Partage : Migration PowerBI -> Python}
-Initialement, nous avions un dashboard PowerBI. Mais partager un fichier \texttt{.pbix} est une barrière pour un jury qui veut un lien web immédiat. Nous avons donc pris le risque (payant) de tout ré-implémenter en Python/Streamlit. Cela nous a permis d'intégrer nativement nos modèles de ML et le Chatbot RAG, ce que PowerBI ne permettait pas avec cette agilité.
+\subsection{Défis Techniques et "War Stories"}
+
+\subsubsection{Le Piège du Formatage : Le Drame de la Virgule Décimale}
+L'un des obstacles les plus chronophages a été invisible au premier abord : le séparateur décimal. Les données GDELT extraites via certains outils locaux étaient formatées selon le standard français (utilisation de la virgule \texttt{,} au lieu du point \texttt{.}). 
+
+Conséquence : Lors de l'ingestion par \textit{Pandas}, des colonnes critiques comme \texttt{GoldsteinScale} ou \texttt{AvgTone} étaient interprétées comme des types \texttt{object} (chaînes de caractères) au lieu de \texttt{float}. Cela a bloqué les calculs statistiques et le clustering pendant plusieurs heures de débogage intense avant que l'équipe n'identifie cette subtilité de "locale". La résolution a nécessité un nettoyage systématique via des fonctions de remplacement (\texttt{.str.replace(',', '.')}) avant la conversion forcée des types.
+
+\subsubsection{Le Défi du Partage : Migration PowerBI -> Python}
+Initialement, nous avions un dashboard PowerBI. Mais partager un fichier \texttt{.pbix} est une barrière pour un jury qui veut un lien web immédiat sans installation logicielle. Nous avons donc pris le risque de tout ré-implémenter en Python/Streamlit. Cela nous a permis d'intégrer nativement nos modèles de ML et le Chatbot RAG, ce que PowerBI ne permettait pas avec cette agilité.
 
 \subsection{Performance et Déploiement Cloud}
 La taille du dataset et des index vectoriels imposait une gestion fine de la RAM. Nous avons optimisé les types de données (float32 vs float64) et utilisé le gestionnaire \textbf{uv} pour garantir des déploiements rapides et reproductibles sur Streamlit Cloud.
