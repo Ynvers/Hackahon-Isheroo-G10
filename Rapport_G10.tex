@@ -193,8 +193,15 @@ L'un des obstacles les plus chronophages a été invisible au premier abord : le
 
 Conséquence : Lors de l'ingestion par \textit{Pandas}, des colonnes critiques comme \texttt{GoldsteinScale} ou \texttt{AvgTone} étaient interprétées comme des types \texttt{object} (chaînes de caractères) au lieu de \texttt{float}. Cela a bloqué les calculs statistiques et le clustering pendant plusieurs heures de débogage intense avant que l'équipe n'identifie cette subtilité de "locale". La résolution a nécessité un nettoyage systématique via des fonctions de remplacement (\texttt{.str.replace(',', '.')}) avant la conversion forcée des types.
 
-\subsubsection{Le Défi du Partage : Migration PowerBI -> Python}
-Initialement, nous avions un dashboard PowerBI. Mais partager un fichier \texttt{.pbix} est une barrière pour un jury qui veut un lien web immédiat sans installation logicielle. Nous avons donc pris le risque de tout ré-implémenter en Python/Streamlit. Cela nous a permis d'intégrer nativement nos modèles de ML et le Chatbot RAG, ce que PowerBI ne permettait pas avec cette agilité.
+\subsubsection{L'Imbroglio des Colonnes : Ambiguité du Dataset}
+Un défi analytique majeur est apparu lors de la phase de visualisation : le dataset contenait deux colonnes aux noms similaires, \texttt{stability\_score} et \texttt{score}. L'équipe a d'abord utilisé la première, avant de réaliser que les valeurs étaient incohérentes avec l'échelle normalisée attendue (0-100). Après une analyse approfondie des scripts de nettoyage, nous avons découvert que le véritable indice composite final était stocké dans \texttt{score}. Ce type d'ambiguïté, fréquent en Data Science, a nécessité une ré-implémentation complète des fonctions de calcul de KPIs pour garantir la véracité des insights présentés.
+
+\subsubsection{Le Goulot d'Étranglement du RAG : Tensions sur la RAM}
+Lors du déploiement sur \textit{Streamlit Community Cloud}, nous avons été confrontés à des \textit{Timeouts} et des erreurs de mémoire. Calculer les embeddings pour 6 353 articles à chaque démarrage de l'application était impossible avec les ressources limitées du cloud. 
+\textbf{Solution :} Nous avons dû concevoir un système de pré-calcul en local, exportant l'index vectoriel \textbf{FAISS} sous forme de fichier binaire. L'application charge désormais l'index en moins de 500ms, transformant une attente de plusieurs minutes en une interaction instantanée.
+
+\subsubsection{Le Paradoxe du Voisin : Filtrage du "Bruit" Nigérian}
+Le Nigeria, de par son poids géopolitique, sature souvent les flux GDELT liés au Bénin. Nous avons remarqué que les crises nigérianes faisaient artificiellement chuter l'indice de stabilité béninois. L'équipe a dû affiner les requêtes de filtrage pour s'assurer que seuls les événements impliquant directement le Bénin ou ayant un impact frontalier avéré soient comptabilisés, évitant ainsi une "pollution" des données nationales par les tensions des pays limitrophes.
 
 \subsection{Performance et Déploiement Cloud}
 La taille du dataset et des index vectoriels imposait une gestion fine de la RAM. Nous avons optimisé les types de données (float32 vs float64) et utilisé le gestionnaire \textbf{uv} pour garantir des déploiements rapides et reproductibles sur Streamlit Cloud.
