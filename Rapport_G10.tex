@@ -200,8 +200,15 @@ Un défi analytique majeur est apparu lors de la phase de visualisation : le dat
 Lors du déploiement sur \textit{Streamlit Community Cloud}, nous avons été confrontés à des \textit{Timeouts} et des erreurs de mémoire. Calculer les embeddings pour 6 353 articles à chaque démarrage de l'application était impossible avec les ressources limitées du cloud. 
 \textbf{Solution :} Nous avons dû concevoir un système de pré-calcul en local, exportant l'index vectoriel \textbf{FAISS} sous forme de fichier binaire. L'application charge désormais l'index en moins de 500ms, transformant une attente de plusieurs minutes en une interaction instantanée.
 
-\subsubsection{Le Paradoxe du Voisin : Filtrage du "Bruit" Nigérian}
-Le Nigeria, de par son poids géopolitique, sature souvent les flux GDELT liés au Bénin. Nous avons remarqué que les crises nigérianes faisaient artificiellement chuter l'indice de stabilité béninois. L'équipe a dû affiner les requêtes de filtrage pour s'assurer que seuls les événements impliquant directement le Bénin ou ayant un impact frontalier avéré soient comptabilisés, évitant ainsi une "pollution" des données nationales par les tensions des pays limitrophes.
+\subsubsection{Le "Hack" UI : Forcer l'Expérience Premium}
+Pour garantir une immersion totale du jury dans le dashboard, l'équipe a dû contourner les limitations natives de Streamlit. Par défaut, le framework affiche une barre d'outils et un menu de configuration qui pouvaient nuire à l'esthétique "Opérationnelle" du projet. 
+\textbf{Solution :} Nous avons injecté des blocs de code CSS brut via \texttt{st.markdown} pour masquer de force ces éléments et verrouiller le thème sombre. Ce "hack" garantit que l'utilisateur reste focalisé sur les données géopolitiques sans distraction technique.
+
+\subsubsection{L'Enfer des Dépendances : La Révolution "uv"}
+Avec l'intégration de bibliothèques complexes (FAISS pour les vecteurs, Mistral pour l'IA, Plotly pour les cartes), la gestion des versions via un simple \texttt{requirements.txt} est devenue ingérable, provoquant des crashs au déploiement. L'adoption du gestionnaire de paquets \textbf{uv} (développé par Astral) a été un tournant. Il a permis de résoudre les conflits de dépendances en quelques secondes et de garantir que l'environnement d'exécution sur le Cloud soit un clone parfait de nos machines de développement, éliminant l'effet "ça marche sur ma machine".
+
+\subsubsection{Le Casse-tête du Mapping : Géocodage Artisanal}
+GDELT fournit souvent des noms de lieux isolés sans précision administrative. Pour notre carte départementale, nous avons dû construire manuellement un dictionnaire de correspondance reliant plus de 50 localités béninoises à leurs départements respectifs (Alibori, Donga, etc.). Sans ce travail de "Data Cleaning" manuel, une grande partie des tensions détectées n'aurait pas pu être spatialisée, rendant la cartographie inexploitable.
 
 \subsection{Performance et Déploiement Cloud}
 La taille du dataset et des index vectoriels imposait une gestion fine de la RAM. Nous avons optimisé les types de données (float32 vs float64) et utilisé le gestionnaire \textbf{uv} pour garantir des déploiements rapides et reproductibles sur Streamlit Cloud.
