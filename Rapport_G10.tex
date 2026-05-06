@@ -1,0 +1,212 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES ---
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2cm, right=2cm}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{tcolorbox}
+\usepackage{amssymb}
+\usepackage{lmodern}
+\usepackage{tikz} % Pour la déco graphique
+\usetikzlibrary{shapes,arrows,positioning}
+
+% --- PALETTE DE COULEURS BÉNIN (PROFESSIONNEL) ---
+\definecolor{beningreen}{RGB}{0, 135, 81}
+\definecolor{beninyellow}{RGB}{252, 209, 22}
+\definecolor{beninred}{RGB}{232, 17, 45}
+\definecolor{darkblue}{RGB}{20, 40, 80}
+\definecolor{softgrey}{RGB}{240, 240, 240}
+
+% --- CONFIGURATION DES TITRES ---
+\titleformat{\section}{\Large\bfseries\color{beningreen}}{\thesection}{1em}{}[\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{darkblue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{beninred!80!black}}{\thesubsubsection}{1em}{}
+
+% --- CONFIGURATION DES EN-TÊTES ---
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{18pt}
+\lhead{\small \textit{Bénin Geo-Watch : Intelligence Artificielle \& Géopolitique}}
+\rhead{\small \textbf{Équipe G10}}
+\cfoot{\small Page \thepage\ sur \pageref{LastPage}}
+
+\hypersetup{colorlinks=true, linkcolor=darkblue, urlcolor=beningreen}
+
+\begin{document}
+
+% ============================================================
+% PAGE DE GARDE GRAPHIQUE
+% ============================================================
+\begin{titlepage}
+    \begin{tikzpicture}[remember picture, overlay]
+        \fill[softgrey] (current page.south west) rectangle (current page.north east);
+        \fill[beningreen] (current page.north west) rectangle ([xshift=1cm]current page.south west);
+        \node[anchor=north east, xshift=-1cm, yshift=-1cm] at (current page.north east) {\Large \textbf{HACKATHON 2026}};
+    \end{tikzpicture}
+
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge \bfseries \color{darkblue} BÉNIN GEO-WATCH \par}
+    \vspace{0.5cm}
+    {\Large \color{beningreen!70!black} Système Intégré de Surveillance et de Prédiction Géopolitique \par}
+    
+    \vspace{1.5cm}
+    \begin{tikzpicture}
+        \draw[beningreen, line width=2pt] (0,0) -- (10,0);
+        \draw[beninyellow, line width=2pt] (0,-0.2) -- (10,-0.2);
+        \draw[beninred, line width=2pt] (0,-0.4) -- (10,-0.4);
+    \end{tikzpicture}
+    
+    \vspace{1.5cm}
+    \begin{tcolorbox}[colback=white, colframe=darkblue, arc=5mm, boxrule=1pt, width=0.8\textwidth]
+        \centering
+        \large \textbf{RAPPORT FINAL DÉTAILLÉ (A-Z)} \\
+        \small \textit{Analyse, Modélisation, RAG et Déploiement}
+    \end{tcolorbox}
+    
+    \vspace{2cm}
+    \begin{minipage}{0.5\textwidth}
+        \begin{flushleft} \large
+            \emph{Membres de l'Équipe G10 :}\\
+            \rule{5cm}{0.5pt} \\
+            \textbf{Ahamadah Marie Cynthia} \\ \small Data Analyst \\
+            \vspace{0.2cm}
+            \textbf{OLOUKPONA Bedel} \\ \small Data Science \\
+            \vspace{0.2cm}
+            \textbf{ADISSO Nelxie} \\ \small ML Engineer \\
+            \vspace{0.2cm}
+            \textbf{Nolhan-Nathan Luzolo ADOHO} \\ \small ML Engineer
+        \end{flushleft}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushright} \large
+            \textbf{Livrables Clés} \\
+            \small
+            Dashboard Streamlit App \\
+            Pipeline RAG Mistral \\
+            Forecasting J+7 \\
+            Clustering GDELT
+        \end{flushright}
+    \end{minipage}
+    
+    \vfill
+    {\large \today}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Vision Stratégique et Objectifs}
+% ============================================================
+Le projet \textbf{Bénin Geo-Watch} répond à l'impératif de souveraineté numérique et informationnelle. Dans un monde saturé de données, la capacité à extraire des \textbf{signaux faibles} est un avantage stratégique.
+
+\subsection{Les trois piliers du projet}
+\begin{enumerate}
+    \item \textbf{Observation :} Cartographie départementale des tensions (12 départements couverts).
+    \item \textbf{Anticipation :} Prédiction de la stabilité via Machine Learning.
+    \item \textbf{Interaction :} Dialogue avec la connaissance via un assistant RAG.
+\end{enumerate}
+
+% ============================================================
+\section{Data Engineering : Du Big Data au Smart Data}
+% ============================================================
+Le socle du projet repose sur la base \textbf{GDELT (Global Database of Events, Language and Tone)}.
+
+\subsection{Ingestion et Nettoyage (Notebooks)}
+Nous avons traité un dataset de plusieurs milliers d'événements. Le nettoyage a inclus :
+\begin{itemize}
+    \item \textbf{Filtrage CAMEO :} Identification des acteurs (Bénin, Nigeria, France, etc.).
+    \item \textbf{Géocodage :} Extraction des coordonnées pour les 12 départements (Alibori, Atacora, Borgou, etc.).
+    \item \textbf{Calcul d'Indices :} Création d'un \textit{Indice de Stabilité} composite normalisé sur une échelle de 0 à 100.
+\end{itemize}
+
+\begin{tcolorbox}[colback=beningreen!5, colframe=beningreen, title=Focus : Normalisation]
+    L'échelle de Goldstein (-10 à +10) a été transformée en un score intuitif où \textbf{50 représente la neutralité}. Ce travail a été crucial pour rendre le dashboard compréhensible par un non-expert.
+\end{tcolorbox}
+
+% ============================================================
+\section{Modélisation Prédictive et Clustering}
+% ============================================================
+
+\subsection{Clustering KMeans (Non-supervisé)}
+Nous avons identifié 4 clusters géopolitiques distincts basés sur le comportement médiatique :
+\begin{itemize}
+    \item \textbf{Cluster 0 (Crise) :} Fort volume, Tone très négatif, Goldstein bas.
+    \item \textbf{Cluster 2 (Coopération) :} Événements diplomatiques à impact positif.
+\end{itemize}
+
+\subsection{Forecasting RandomForest}
+Pour la prédiction temporelle, nous utilisons un \textit{Random Forest Regressor}.
+\subsubsection{Performance du modèle}
+Le modèle atteint des métriques de précision satisfaisantes (\textbf{MAE faible}) grâce à l'utilisation de \textbf{Lag Features} (décalages temporels J-1 à J-7) et de moyennes mobiles, capturant ainsi la saisonnalité des tensions.
+
+% ============================================================
+\section{Architecture RAG : L'Intelligence Augmentée}
+% ============================================================
+L'Équipe G10 a déployé un pipeline de \textit{Retrieval-Augmented Generation} ultra-performant.
+
+\subsection{Stack Technique RAG}
+\begin{itemize}
+    \item \textbf{Embeddings :} Modèle \texttt{mistral-embed} (Vecteurs de haute dimension).
+    \item \textbf{Vector Store :} \textbf{FAISS} (\textit{Facebook AI Similarity Search}) pour une recherche instantanée parmi 6 353 articles.
+    \item \textbf{Inférence :} \texttt{mistral-small-latest} pour la synthèse textuelle.
+\end{itemize}
+
+\begin{tcolorbox}[colback=beninred!5, colframe=beninred, title=Défis du RAG]
+    Le principal défi était la \textbf{quantité absurde de données}. La solution a été la création d'un index vectoriel persisté, évitant de re-calculer les embeddings à chaque requête, réduisant la latence de 90\%.
+\end{tcolorbox}
+
+% ============================================================
+\section{Développement du Dashboard (UI/UX)}
+% ============================================================
+Le dashboard a été conçu pour être un outil de "Command \& Control".
+
+\subsection{Design Système}
+\begin{itemize}
+    \item \textbf{Thème Sombre Premium :} Réduction de la fatigue visuelle et aspect "Centre d'Opérations".
+    \item \textbf{Visualisations Plotly :} Graphiques interactifs (Area charts, Mapbox) pour une exploration granulaire.
+    \item \textbf{Simulateur What-If :} Permet à l'utilisateur de simuler un scénario (ex: chute brutale du Goldstein) et de voir comment le modèle ML le classifierait en temps réel.
+\end{itemize}
+
+% ============================================================
+\section{Difficultés et Gestion de Projet}
+% ============================================================
+\begin{enumerate}
+    \item \textbf{Partage PowerBI :} L'impossibilité de partager facilement l'analyse nous a poussé à migrer vers Streamlit. Cette contrainte s'est transformée en opportunité (intégration native de l'IA).
+    \item \textbf{Travail en Équipe :} La coordination entre le nettoyage des données et le développement de l'interface a été facilitée par l'utilisation de \texttt{joblib} pour la sérialisation des modèles.
+\end{enumerate}
+
+% ============================================================
+\section{Livrables et Accès}
+% ============================================================
+\begin{itemize}
+    \item \textbf{Dashboard :} \href{https://isheeroo.streamlit.app/}{isheeroo.streamlit.app}
+    \item \textbf{Code Source :} Dépôt GitHub avec structure \texttt{uv}.
+    \item \textbf{Rapport :} Ce présent document LaTeX.
+\end{itemize}
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+Bénin Geo-Watch est la preuve que la Data Science peut éclairer les zones d'ombre de la géopolitique. Notre équipe livre aujourd'hui un outil robuste, prédictif et prêt pour une utilisation stratégique.
+
+\vfill
+\begin{center}
+    \textit{Équipe G10 -- Hackathon iSHEERO 2026} \\
+    \textbf{Fait avec rigueur et passion pour le futur du Bénin.}
+\end{center}
+
+\end{document}
