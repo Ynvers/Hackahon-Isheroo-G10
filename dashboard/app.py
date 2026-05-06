@@ -319,8 +319,8 @@ with st.expander("Comprendre les indicateurs GDELT", expanded=False):
 total_events = len(filtered_events)
 avg_goldstein = filtered_events['GoldsteinScale'].mean()
 avg_tone = filtered_events['AvgTone'].mean()
-# Using daily score for stability
-avg_stability = daily_score_df['stability_score'].mean() if 'stability_score' in daily_score_df.columns else 53
+# Utilisation de la colonne 'score' (0-100) pour la stabilité au lieu de 'stability_score' (brut)
+avg_stability = daily_score_df['score'].mean() if 'score' in daily_score_df.columns else 53
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -452,11 +452,12 @@ with row2_col1:
 with row2_col2:
     st.subheader("Évolution de la Stabilité Globale")
     st.markdown("*Ce score agrégé quotidiennement montre la 'santé géopolitique' du pays. La courbe rouge permet de lisser les données pour dégager la tendance de fond sur 7 jours.*")
-    if not daily_score_df.empty and 'stability_score' in daily_score_df.columns:
-        fig4 = px.line(daily_score_df, x='SQLDATE', y='stability_score', template="plotly_dark", color_discrete_sequence=['#2ecc71'], title="")
+    if not daily_score_df.empty and 'score' in daily_score_df.columns:
+        fig4 = px.line(daily_score_df, x='SQLDATE', y='score', template="plotly_dark", color_discrete_sequence=['#2ecc71'], title="")
         if len(daily_score_df) > 7:
-            daily_score_df['rolling_stability'] = daily_score_df['stability_score'].rolling(window=7).mean()
+            daily_score_df['rolling_stability'] = daily_score_df['score'].rolling(window=7).mean()
             fig4.add_trace(go.Scatter(x=daily_score_df['SQLDATE'], y=daily_score_df['rolling_stability'], mode='lines', name='Moyenne 7 jours', line=dict(color='#e74c3c', width=2)))
+        fig4.update_layout(yaxis_title="Indice de Stabilité (0-100)")
         st.plotly_chart(fig4, use_container_width=True)
     else:
         st.warning("Données de stabilité non disponibles.")
@@ -470,8 +471,8 @@ with i_col1:
     st.markdown("""<div class="insight-card"><h4>Pic d'Instabilité</h4><p>En décembre, le nombre d'événements (près de 1100) a représenté le double de la moyenne mensuelle. Un signal d'instabilité majeur qui a déclenché nos alertes de crise.</p></div>""", unsafe_allow_html=True)
     st.markdown("""<div class="insight-card"><h4>Dramatisation Médiatique</h4><p>Les articles couvrant une crise affichent un ton moyen de <b>-1.72</b> contre +1.13 pour les autres. La presse internationale polarise fortement l'actualité sécuritaire.</p></div>""", unsafe_allow_html=True)
 with i_col2:
-    st.markdown("""<div class="insight-card" style="border-top-color: #2ecc71;"><h4>Résilience Diplomatique</h4><p>Malgré un contexte sécuritaire tendu au Nord, plus de <b>51%</b> des événements recensés sont de type "Coopération". L'activité diplomatique du Bénin reste extrêmement solide.</p></div>""", unsafe_allow_html=True)
-    st.markdown("""<div class="insight-card" style="border-top-color: #3498db;"><h4>Le Poids du Nigeria</h4><p>Avec plus de 600 événements conjoints, le Nigeria s'affirme de très loin comme le premier acteur d'interaction géopolitique du Bénin devant la France et les autres pays frontaliers.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card" style="border-top-color: #2ecc71;"><h4>Résilience Diplomatique</h4><p>Malgré un contexte sécuritaire tendu au Nord, plus de <b>75%</b> des événements recensés sont de type "Coopération" ou "Diplomatie". L'activité diplomatique du Bénin reste extrêmement solide.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="insight-card" style="border-top-color: #3498db;"><h4>Le Poids du Nigeria</h4><p>Avec plus de 3 000 événements conjoints dans la base, le Nigeria s'affirme de très loin comme le premier acteur d'interaction géopolitique du Bénin devant la France et les autres pays frontaliers.</p></div>""", unsafe_allow_html=True)
 with i_col3:
     st.markdown("""<div class="insight-card" style="border-top-color: #f1c40f;"><h4>Le Mois de Tous les Dangers</h4><p>L'échelle de Goldstein montre que le mois de novembre a été le mois où l'intensité moyenne des conflits a été la plus critique (score descendant à +0.13, frôlant le négatif).</p></div>""", unsafe_allow_html=True)
 
