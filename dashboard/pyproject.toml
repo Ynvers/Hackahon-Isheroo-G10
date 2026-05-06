@@ -5,6 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "faiss-cpu>=1.13.2",
+    "mistralai>=2.4.4",
     "numpy>=2.2.6",
     "pandas>=2.3.3",
     "plotly>=6.7.0",

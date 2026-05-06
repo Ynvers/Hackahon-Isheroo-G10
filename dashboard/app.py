@@ -3,9 +3,19 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import os
+import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from pathlib import Path
+
+# Chargement de la clé API depuis le fichier .env (si non déjà en variable d'env)
+_env_path = Path(__file__).parent.parent / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        if "=" in _line and not _line.startswith("#"):
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 # Configuration de la page
 st.set_page_config(
@@ -102,6 +112,161 @@ if selected_month != "Tous":
     filtered_events = filtered_events[filtered_events['month_name'] == selected_month]
 if selected_event_types:
     filtered_events = filtered_events[filtered_events['EventType'].isin(selected_event_types)]
+
+# ============================================================
+# --- RAG ASSISTANT ---
+# ============================================================
+
+@st.cache_resource(show_spinner="Chargement de la base vectorielle…")
+def load_rag_components():
+    """Charge l'index FAISS, les métadonnées et le client Mistral (une seule fois)."""
+    try:
+        import faiss
+        from mistralai.client import Mistral
+
+        # Résolution robuste du chemin : on cherche depuis __file__ (absolu) puis depuis cwd
+        _app_file = Path(__file__).resolve()
+        _candidates = [
+            _app_file.parent.parent / "data" / "VectorBase_db",   # lancé depuis dashboard/
+            Path.cwd() / "data" / "VectorBase_db",                 # lancé depuis racine projet
+            Path.cwd().parent / "data" / "VectorBase_db",          # autre contexte
+        ]
+        base = next((p for p in _candidates if (p / "benin_events.index").exists()), None)
+        if base is None:
+            return None, None, None
+
+        index = faiss.read_index(str(base / "benin_events.index"))
+        with open(base / "events_metadata.pkl", "rb") as f:
+            metadata = pickle.load(f)
+
+        api_key = os.environ.get("MISTRAL_API_KEY", "")
+        client = Mistral(api_key=api_key)
+        return index, metadata, client
+    except Exception:
+        return None, None, None
+
+
+def chat_with_rag(query: str, index, metadata, mistral_client) -> tuple[str, list[str]]:
+    """Embed la question, récupère le contexte FAISS, génère la réponse Mistral."""
+    # 1. Embedding de la question
+    res_query = mistral_client.embeddings.create(
+        model="mistral-embed",
+        inputs=[query]
+    )
+    query_vec = np.array([res_query.data[0].embedding]).astype("float32")
+
+    # 2. Recherche Top-2 dans FAISS
+    _D, I = index.search(query_vec, k=2)
+
+    # 3. Construction du contexte
+    context = ""
+    sources = []
+    for idx in I[0]:
+        if idx < 0 or idx >= len(metadata):
+            continue
+        article = metadata[idx]
+        context += f"\n---\nARTICLE ({article.get('EventType', '?')}): {article.get('article_text', '')}\n"
+        url = article.get("SOURCEURL", "")
+        if url:
+            sources.append(url)
+
+    # 4. Prompt
+    prompt = f"""Tu es un expert en actualité béninoise. Réponds à la question en utilisant UNIQUEMENT le contexte fourni ci-dessous.
+Si la réponse n'est pas dans le contexte, dis-le poliment.
+
+CONTEXTE:
+{context}
+
+QUESTION:
+{query}
+
+RÉPONSE:"""
+
+    # 5. Appel Mistral Chat
+    chat_response = mistral_client.chat.complete(
+        model="mistral-small-latest",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return chat_response.choices[0].message.content, list(set(sources))
+
+
+# --- Initialisation de l'historique de conversation ---
+if "rag_history" not in st.session_state:
+    st.session_state.rag_history = []  # liste de {"role": "user"|"bot", "content": str}
+
+# --- Chargement des composants RAG ---
+faiss_index, events_metadata, mistral_client_rag = load_rag_components()
+
+# --- UI Sidebar RAG ---
+st.sidebar.divider()
+st.sidebar.markdown(
+    "<h3 style='margin-bottom:4px;'>🤖 Assistant RAG</h3>"
+    "<p style='font-size:12px; color:#888; margin-top:0;'>Posez une question sur les données géopolitiques du Bénin</p>",
+    unsafe_allow_html=True
+)
+
+if faiss_index is None:
+    st.sidebar.error("❌ Base vectorielle introuvable. Vérifiez `data/VectorBase_db/`.")
+else:
+    # Affichage de l'historique
+    for msg in st.session_state.rag_history:
+        if msg["role"] == "user":
+            st.sidebar.markdown(
+                f"<div style='background:#2a2a2a;border-left:3px solid #3498db;padding:8px 10px;"
+                f"border-radius:6px;margin-bottom:6px;font-size:13px;'>"
+                f"<b style='color:#3498db;'>Vous</b><br>{msg['content']}</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.sidebar.markdown(
+                f"<div style='background:#1e1e1e;border-left:3px solid #2ecc71;padding:8px 10px;"
+                f"border-radius:6px;margin-bottom:6px;font-size:13px;'>"
+                f"<b style='color:#2ecc71;'>Assistant</b><br>{msg['content']}</div>",
+                unsafe_allow_html=True
+            )
+            if msg.get("sources"):
+                with st.sidebar.expander("📎 Sources", expanded=False):
+                    for src in msg["sources"]:
+                        st.sidebar.markdown(f"- [{src[:60]}…]({src})" if len(src) > 60 else f"- [{src}]({src})")
+
+    # Saisie de la question
+    user_question = st.sidebar.text_area(
+        "Votre question :",
+        placeholder="Ex: Que s'est-il passé dans le Borgou en décembre ?",
+        height=90,
+        key="rag_input"
+    )
+    send_col, clear_col = st.sidebar.columns([2, 1])
+    send_btn = send_col.button("📨 Envoyer", use_container_width=True, type="primary")
+    clear_btn = clear_col.button("🗑️ Effacer", use_container_width=True)
+
+    if clear_btn:
+        st.session_state.rag_history = []
+        st.rerun()
+
+    if send_btn and user_question.strip():
+        st.session_state.rag_history.append({"role": "user", "content": user_question.strip()})
+        with st.sidebar:
+            with st.spinner("Recherche en cours…"):
+                try:
+                    answer, sources = chat_with_rag(
+                        user_question.strip(),
+                        faiss_index,
+                        events_metadata,
+                        mistral_client_rag
+                    )
+                    st.session_state.rag_history.append({
+                        "role": "bot",
+                        "content": answer,
+                        "sources": sources
+                    })
+                except Exception as e:
+                    st.session_state.rag_history.append({
+                        "role": "bot",
+                        "content": f"⚠️ Erreur : {e}",
+                        "sources": []
+                    })
+        st.rerun()
 
 # --- KPIs ---
 total_events = len(filtered_events)
